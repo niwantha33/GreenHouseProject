@@ -9,17 +9,15 @@
 
 #define DHTTYPE DHT11
 
-const char *SSID = "slt-tigo";
-const char *PSWD = "12345678";
+const char *SSID = "TOZED_4G";
+const char *PSWD = "653D44A7";
 
 const char *HOST = "api.thingspeak.com"; //
 
 const char *PRIVATEKEY = "P4Q63MKDI1T7DBT2"; // Write API Key from thingspeak {Feel free to use this API}
 
-
-volatile double updateTime = 0; 
-
-
+volatile double updateTime = 0;
+volatile double ledTimeOut = 0;
 /* Error List */
 const char *ERRORCODES[] = {
 
@@ -34,6 +32,7 @@ typedef struct SENSORS
   int humidity;
   int soilMositureLevel;
   bool err;
+
 } sensor_t;
 
 /* CallBack function */
@@ -51,6 +50,8 @@ DHT dht(DHTPIN, DHTTYPE);
 
 void setup()
 {
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, HIGH);
   Serial.begin(115200);
   dht.begin();
   systemInit();
@@ -58,18 +59,25 @@ void setup()
 
 void loop()
 {
-  event_t thingsSpeak = &sendThingSpeakSever;
-
-  sensor_t sesnorsValue = readingSensors();
-
   /* sending collected data to ThingSpeak Sever */
   if (millis() - updateTime > 5000UL)
   {
+    event_t thingsSpeak = &sendThingSpeakSever;
+
+    sensor_t sesnorsValue = readingSensors();
+
     updateTime = millis();
-    if (sesnorsValue.err && (WiFi.status() != WL_CONNECTED))
+    if (sesnorsValue.err && (WiFi.status() == WL_CONNECTED))
     {
       thingsSpeak(&sesnorsValue.temperature, &sesnorsValue.humidity, &sesnorsValue.soilMositureLevel);
     }
+  }
+
+  if (millis() - ledTimeOut > 150 && ((WiFi.status() == WL_CONNECTED)))
+  {
+    ledTimeOut = millis();
+
+    digitalWrite(LED_BUILTIN, (1 - digitalRead(LED_BUILTIN)));
   }
 }
 
@@ -108,11 +116,6 @@ sensor_t readingSensors()
 
   if (isnan(h) || isnan(t))
   {
-    sensorData.err = false;
-    Serial.printf("Error Code : %s \n", ERRORCODES[1]);
-  }
-  else
-  {
 
     int soilSesnor = 0;
 
@@ -125,6 +128,11 @@ sensor_t readingSensors()
     sensorData.humidity = h;
     sensorData.temperature = t;
     sensorData.soilMositureLevel = soilSesnor / 50;
+  }
+  else
+  {
+    Serial.printf("Error Code : %s \n", ERRORCODES[1]);
+    sensorData.err = false;
   }
 
   return (sensorData);
@@ -144,9 +152,9 @@ int sendThingSpeakSever(int *tmp, int *hum, int *soilHum)
   url += "&field1="; // Things peak field1
   url += (int)tmp;   // value that need  put to field1
   url += "&field2="; // Things peak field1
-  url += (int) hum;        // value that need  put to field1
+  url += (int)hum;   // value that need  put to field1
   url += "&field3=";
-  url += (int) soilHum; // value that need put to field
+  url += (int)soilHum; // value that need put to field
   // // url += "&field4=";
   // url += ULT;
   // url += "&status=";
@@ -164,6 +172,7 @@ int sendThingSpeakSever(int *tmp, int *hum, int *soilHum)
     {
       Serial.println(">>> Client Timeout !");
       client.stop();
+      Serial.printf("Error Code : %s \n", ERRORCODES[2]);
     }
   }
 
