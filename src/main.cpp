@@ -143,10 +143,10 @@ int sendThingSpeakSever(int *tmp, int *hum, int *soilHum)
   url += PRIVATEKEY;
   url += "&field1="; // Things peak field1
   url += (int)tmp;   // value that need  put to field1
-  // url += "&field2="; // Things peak field1
-  // url += (int) hum;        // value that need  put to field1
-  // url += "&field3=";
-  // url += (int) soilHum; // value that need put to field
+  url += "&field2="; // Things peak field1
+  url += (int) hum;        // value that need  put to field1
+  url += "&field3=";
+  url += (int) soilHum; // value that need put to field
   // // url += "&field4=";
   // url += ULT;
   // url += "&status=";
