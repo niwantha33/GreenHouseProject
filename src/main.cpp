@@ -1,5 +1,4 @@
 #include <Arduino.h>
-#include "stdio.h"
 #include "lionbit.h"
 #include "DHT.h"
 #include <WiFi.h>
@@ -9,8 +8,8 @@
 
 #define DHTTYPE DHT11
 
-const char *SSID = "TED_4G";
-const char *PSWD = "6D4712345";
+const char *SSID = "TOZED_4G";
+const char *PSWD = "653D44A7";
 
 const char *HOST = "api.thingspeak.com"; //
 
@@ -36,11 +35,11 @@ typedef struct SENSORS
 } sensor_t;
 
 /* CallBack function */
-typedef int (*event_t)(int *, int *, int *); /* This callbackf function will use to send data to Thingspeak Sever */
+typedef int (*event_t)(int, int, int); /* This callbackf function will use to send data to Thingspeak Sever */
 typedef bool (*mainEvents_t)(char *, char *);
 
 /* Declaring prtotype */
-int sendThingSpeakSever(int *tmp, int *hum, int *soilHum);
+int sendThingSpeakSever(int tmp, int hum, int soilHum);
 bool wifiConnection(char *ssid, char *pswd);
 sensor_t readingSensors();
 void systemInit();
@@ -69,7 +68,8 @@ void loop()
     updateTime = millis();
     if (sesnorsValue.err && (WiFi.status() == WL_CONNECTED))
     {
-      thingsSpeak(&sesnorsValue.temperature, &sesnorsValue.humidity, &sesnorsValue.soilMositureLevel);
+      
+      thingsSpeak(sesnorsValue.temperature, sesnorsValue.humidity, sesnorsValue.soilMositureLevel);
     }
   }
 
@@ -113,10 +113,14 @@ sensor_t readingSensors()
   int h = dht.readHumidity();
 
   int t = dht.readTemperature();
-
+ 
   if (isnan(h) || isnan(t))
   {
-
+    Serial.printf("Error Code : %s \n", ERRORCODES[1]);
+    sensorData.err = false;
+  }
+  else
+  {
     int soilSesnor = 0;
 
     for (int i = 0; i < 50; i++)
@@ -129,36 +133,18 @@ sensor_t readingSensors()
     sensorData.temperature = t;
     sensorData.soilMositureLevel = soilSesnor / 50;
   }
-  else
-  {
-    Serial.printf("Error Code : %s \n", ERRORCODES[1]);
-    sensorData.err = false;
-  }
 
   return (sensorData);
 }
 
-int sendThingSpeakSever(int *tmp, int *hum, int *soilHum)
+int sendThingSpeakSever(int tmp, int hum, int soilHum)
 {
   WiFiClient client; // Creating Wifi clie
   const int httpPort = 80;
   client.connect((char *)HOST, httpPort);
 
-  // We now create a URI for the request
-  String url = "/update";
-  // // url += streamId;
-  url += "?key=";
-  url += PRIVATEKEY;
-  url += "&field1="; // Things peak field1
-  url += (int)tmp;   // value that need  put to field1
-  url += "&field2="; // Things peak field1
-  url += (int)hum;   // value that need  put to field1
-  url += "&field3=";
-  url += (int)soilHum; // value that need put to field
-  // // url += "&field4=";
-  // url += ULT;
-  // url += "&status=";
-  // url += count; // Number of count that transmitted to the thingspeak Server
+  char url[150];
+  sprintf(url, "/update?key=%s&field1=%d&field2=%d&field3=%d", PRIVATEKEY, (int)tmp, (int)hum, (int)soilHum);
 
   // This will send the request to the server
   client.print(String("GET ") + url + " HTTP/1.1\r\n" +
