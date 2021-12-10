@@ -1,10 +1,11 @@
 #include <Arduino.h>
 #include "stdio.h"
+#include "lionbit.h"
 #include "DHT.h"
 #include <WiFi.h>
 #include <WiFiClient.h>
 
-#define DHTPIN 2
+#define DHTPIN D4
 
 #define DHTTYPE DHT11
 
@@ -14,6 +15,10 @@ const char *PSWD = "12345678";
 const char *HOST = "api.thingspeak.com"; //
 
 const char *PRIVATEKEY = "P4Q63MKDI1T7DBT2"; // Write API Key from thingspeak {Feel free to use this API}
+
+
+volatile double updateTime = 0; 
+
 
 /* Error List */
 const char *ERRORCODES[] = {
@@ -47,6 +52,7 @@ DHT dht(DHTPIN, DHTTYPE);
 void setup()
 {
   Serial.begin(115200);
+  dht.begin();
   systemInit();
 }
 
@@ -57,29 +63,39 @@ void loop()
   sensor_t sesnorsValue = readingSensors();
 
   /* sending collected data to ThingSpeak Sever */
-
-  if (sesnorsValue.err)
-    thingsSpeak(&sesnorsValue.temperature, &sesnorsValue.humidity, &sesnorsValue.soilMositureLevel);
-
-  
+  if (millis() - updateTime > 5000UL)
+  {
+    updateTime = millis();
+    if (sesnorsValue.err && (WiFi.status() != WL_CONNECTED))
+    {
+      thingsSpeak(&sesnorsValue.temperature, &sesnorsValue.humidity, &sesnorsValue.soilMositureLevel);
+    }
+  }
 }
 
 void systemInit()
 {
 
-  dht.begin();
   if (WiFiConnection((char *)SSID, (char *)PSWD))
   {
     /* Event Body */
+    Serial.printf("WiFi Sucesse \n");
   }
+
   else
   {
-    Serial.printf("Error Code : %s \n", ERRORCODES[1]);
+    Serial.printf("Error Code : %s \n", ERRORCODES[0]);
   }
 }
 
 bool wifiConnection(char *ssid, char *pswd)
 {
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(SSID, PSWD);
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    return false;
+  }
   return true;
 }
 
@@ -93,14 +109,22 @@ sensor_t readingSensors()
   if (isnan(h) || isnan(t))
   {
     sensorData.err = false;
+    Serial.printf("Error Code : %s \n", ERRORCODES[1]);
   }
   else
   {
 
+    int soilSesnor = 0;
+
+    for (int i = 0; i < 50; i++)
+    {
+      soilSesnor += analogRead(A2);
+    }
+
     sensorData.err = true;
     sensorData.humidity = h;
     sensorData.temperature = t;
-    sensorData.soilMositureLevel = 100;
+    sensorData.soilMositureLevel = soilSesnor / 50;
   }
 
   return (sensorData);
@@ -117,13 +141,13 @@ int sendThingSpeakSever(int *tmp, int *hum, int *soilHum)
   // // url += streamId;
   url += "?key=";
   url += PRIVATEKEY;
-  // url += "&field1="; // Things peak field1
-  // url += TEM;        // value that need  put to field1
+  url += "&field1="; // Things peak field1
+  url += (int)tmp;   // value that need  put to field1
   // url += "&field2="; // Things peak field1
-  // url += HUM;        // value that need  put to field1
+  // url += (int) hum;        // value that need  put to field1
   // url += "&field3=";
-  // url += SOIL;
-  // url += "&field4=";
+  // url += (int) soilHum; // value that need put to field
+  // // url += "&field4=";
   // url += ULT;
   // url += "&status=";
   // url += count; // Number of count that transmitted to the thingspeak Server
