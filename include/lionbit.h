@@ -1,6 +1,6 @@
-// stem_hal.h
-// Earlier this year
-// Jan 24
+// lionbit.h
+// Author: Niwantha Meepage 
+// 2018 Jan 24
 
 // You uploaded an item
 // C
@@ -8,8 +8,8 @@
 /*
  * Author             - Niwantha Meepage
  * Comapany           - Algobel Technologies & Innovations 
- * Created Date       - 4 Nov 2019
- * Edited             - 5 Dec 2019
+ * Created ALT Date         - 4 Nov 2019
+ * Edited                   - 5 Dec 2019
  * 
  */
 
