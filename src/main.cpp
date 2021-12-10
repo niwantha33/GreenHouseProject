@@ -8,8 +8,8 @@
 
 #define DHTTYPE DHT11
 
-const char *SSID = "TOZED_4G";
-const char *PSWD = "653D44A7";
+const char *SSID = "TV";
+const char *PSWD = "12345678";
 
 const char *HOST = "api.thingspeak.com"; //
 
